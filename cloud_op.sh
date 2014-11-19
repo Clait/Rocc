@@ -1,7 +1,7 @@
 #!/bin/bash
 # Created by Kollin Prince (kollin.prince@emc.com
 ########
-# Tool Create to help copy files in /var/service of all beatle nodes
+# Tool Create to help copy files in ${path_variable} of all beatle nodes
 ########
 version=1.0.4
 trap control_c SIGINT
@@ -13,6 +13,7 @@ control_c() {
   exit
 }
 
+path_variable=/usr/local/bin/
 black='\E[30m' #display color when outputting information
 red='\E[31m'
 green='\E[0;32m'
@@ -25,17 +26,17 @@ orange='\E[0;33m'
 
 Usage() {
   echo "
-This tool will copy a file in /var/service of all beatle nodes or run a command on the master nodes of each cloud. 
+This tool will copy a file in ${path_variable} of all beatle nodes or run a command on the master nodes of each cloud. 
 
                                                 Usage:
-./cloud.op.sh -a (Copies a file from -f option to /var/service in all beatle nodes)
+./cloud.op.sh -a (Copies a file from -f option to ${path_variable} in all beatle nodes)
                         -x (command to run)
                         -f (The file to be copied)
                         -v (Shows the current version.)
 Example:
 
 ./cloud.op.sh -f show_offline_disks.sh -a
-The above will copy show_offline_disks to /var/service in all beatle nodes.
+The above will copy show_offline_disks to ${path_variable} in all beatle nodes.
 
 ./cloud.op.sh -x uptime -a
 The above will run uptime on all the master nodes. If you have a command longer than one word please put them in double quotes
@@ -46,16 +47,16 @@ The above will run uptime on all the master nodes. If you have a command longer 
 all_clouds() {
   special=0
   #sudo pkill vpnc
-  echo -e $cyan"Connecting to Phase 2 West Clouds"$white; [[ $(ps aux | egrep "[v]pnc beatle-rdcy"|wc -l) -gt 0 ]] && sudo vpnc beatle-rdcy01.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/West_list);eval "${action}"
+  echo -e $cyan"Connecting to Phase 2 West Clouds"$white; [[ $(ps aux | egrep "[v]pnc beatle-rdcy"|wc -l) -eq 0 ]] && sudo vpnc beatle-rdcy01.conf > /dev/null; list=$(cat ${path_variable}ip_lists/West_list);eval "${action}"
   #sudo pkill vpnc
-  echo -e $cyan"Connecting to EMEA Clouds"$white; [[ $(ps aux | egrep "[v]pnc beatle-amst"|wc -l) -gt 0 ]] && sudo vpnc beatle-amst01.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/Amst_list);eval "${action}"
+  echo -e $cyan"Connecting to EMEA Clouds"$white; [[ $(ps aux | egrep "[v]pnc beatle-amst"|wc -l) -eq 0 ]] && sudo vpnc beatle-amst01.conf > /dev/null; list=$(cat ${path_variable}ip_lists/Amst_list);eval "${action}"
   #sudo pkill vpnc
-  echo -e $cyan"Connecting to Phase 2 APJK Clouds"$white;[[ $(ps aux | egrep "[v]pnc beatle-hnkg"|wc -l) -gt 0 ]] && sudo vpnc beatle-hnkg01.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/tkyo_list); eval "${action}"
+  echo -e $cyan"Connecting to Phase 2 APJK Clouds"$white;[[ $(ps aux | egrep "[v]pnc beatle-hnkg"|wc -l) -eq 0 ]] && sudo vpnc beatle-hnkg01.conf > /dev/null; list=$(cat ${path_variable}ip_lists/tkyo_list); eval "${action}"
   #sudo pkill vpnc
-  echo -e $cyan"Connecting to Phase 1 APJK Cloud"$white; [[ $(ps aux | egrep "[v]pnc beatle-syd"|wc -l) -gt 0 ]] && sudo vpnc beatle-syd1.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/syd_tyo_list); eval "${action}"
+  echo -e $cyan"Connecting to Phase 1 APJK Cloud"$white; [[ $(ps aux | egrep "[v]pnc beatle-syd"|wc -l) -eq 0 ]] && sudo vpnc beatle-syd1.conf > /dev/null; list=$(cat ${path_variable}ip_lists/syd_tyo_list); eval "${action}"
   #sudo pkill vpnc
   special=1
-  echo -e $cyan"Connection to Phase 1 AMER Clouds"$white; [[ $(ps aux | egrep "[v]pnc beatle-rwc"|wc -l) -gt 0 ]] && sudo vpnc beatle-rwc1.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/Phase1_list); eval "${action}"
+  echo -e $cyan"Connection to Phase 1 AMER Clouds"$white; [[ $(ps aux | egrep "[v]pnc beatle-rwc"|wc -l) -eq 0 ]] && sudo vpnc beatle-rwc1.conf > /dev/null; list=$(cat ${path_variable}ip_lists/Phase1_list); eval "${action}"
   #sudo pkill vpnc
 }
 
@@ -126,15 +127,15 @@ update() {
 case "$special" in
   0)  hosts_done=0
       for host in $(echo $list); do
-        sshpass -p 'C0untingstars' scp $file root@$host:/var/service
-        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no root@$host mauiscp /usr/local/bin/$file /usr/local/bin/
+        echo -en "$host"; sshpass -p 'C0untingstars' scp $file root@$host:${path_variable}
+        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no root@$host "echo -e \"$HOSTNAME\"; mauiscp ${path_variable}$file ${path_variable}"
         hosts_done=$(($hosts_done+1)); echo -ne "Hosts finished: "${green}${hosts_done}${white}    "Total hosts: $orange"$(echo $list |wc -w)'\r'$white
       done
       echo -ne '\n';;
-  1)  hosts_done=0; sshpass -p 'C0untingstars' scp $file root@172.19.22.11:/var/service
+  1)  hosts_done=0; sshpass -p 'C0untingstars' scp $file root@172.19.22.11:${path_variable}
       for host in $(echo $list); do
-        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no -t -t -R 8080:127.0.0.1:80 root@172.17.22.11 scp /usr/local/bin/$file root@$host:/var/service 2>/dev/null
-        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no -t -t -R 8080:127.0.0.1:80 root@172.17.22.11 ssh $host mauiscp /usr/local/bin/$file /usr/local/bin/ 2>/dev/null
+        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no -t -t -R 8080:127.0.0.1:80 root@172.17.22.11 scp ${path_variable}$file root@$host:${path_variable} 2>/dev/null
+        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no -t -t -R 8080:127.0.0.1:80 root@172.17.22.11 ssh $host mauiscp ${path_variable}$file ${path_variable} 2>/dev/null
         hosts_done=$(($hosts_done+1)); echo -ne "Hosts finished: "${green}${hosts_done}${white}    "Total hosts: $orange"$(echo $list |wc -w)'\r'$white
       done
       echo -ne '\n';;
@@ -145,7 +146,7 @@ run_cmd() {
 case "$special" in
   0)  hosts_done=0
       for host in $(echo $list); do
-        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no root@$host $cmd > tmp.cmd
+        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no root@$host "echo -e \"$HOSTNAME\"; $cmd > tmp.cmd"
         echo -ne "                                        "'\r'; cat tmp.cmd
         hosts_done=$(($hosts_done+1)); echo -ne "Hosts finished: "${green}${hosts_done}${white}     "Total hosts: $orange"$(echo $list |wc -w)'\r'$white
       done
