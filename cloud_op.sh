@@ -3,14 +3,16 @@
 ########
 # Tool Create to help copy files in /var/service of all beatle nodes
 ########
-Version=1.0.4
+version=1.0.4
 trap control_c SIGINT
+
 control_c() {
   echo -e "Control_c detected.... Ending Connections"
-  sudo pkill vpnc
+  #sudo pkill vpnc
   rm -f tmp.cmd
   exit
 }
+
 black='\E[30m' #display color when outputting information
 red='\E[31m'
 green='\E[0;32m'
@@ -20,6 +22,7 @@ magenta='\E[35m'
 cyan='\E[36m'
 white='\E[1;37m'
 orange='\E[0;33m'
+
 Usage() {
   echo "
 This tool will copy a file in /var/service of all beatle nodes or run a command on the master nodes of each cloud. 
@@ -39,23 +42,24 @@ The above will run uptime on all the master nodes. If you have a command longer 
 "
   exit
 }
+
 all_clouds() {
   special=0
-  sudo pkill vpnc
-  echo -e $cyan"Connecting to Phase 2 West Clouds"$white; sudo vpnc beatle-rdcy01.conf > /dev/null; list=$(cat West_list);eval "${action}"
-  sudo pkill vpnc
-  echo -e $cyan"Connecting to EMEA Clouds"$white; sudo vpnc beatle-amst01.conf > /dev/null; list=$(cat Amst_list);eval "${action}"
-  sudo pkill vpnc
-  echo -e $cyan"Connecting to Phase 2 APJK Clouds"$white;sudo vpnc beatle-hnkg01.conf > /dev/null; list=$(cat tkyo_list); eval "${action}"
-  sudo pkill vpnc
-  echo -e $cyan"Connecting to Phase 1 APJK Cloud"$white; sudo vpnc beatle-syd1.conf > /dev/null; list=$(cat syd_tyo); eval "${action}"
-  sudo pkill vpnc
+  #sudo pkill vpnc
+  echo -e $cyan"Connecting to Phase 2 West Clouds"$white; [[ $(ps aux | egrep "[v]pnc beatle-rdcy"|wc -l) -gt 0 ]] && sudo vpnc beatle-rdcy01.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/West_list);eval "${action}"
+  #sudo pkill vpnc
+  echo -e $cyan"Connecting to EMEA Clouds"$white; [[ $(ps aux | egrep "[v]pnc beatle-amst"|wc -l) -gt 0 ]] && sudo vpnc beatle-amst01.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/Amst_list);eval "${action}"
+  #sudo pkill vpnc
+  echo -e $cyan"Connecting to Phase 2 APJK Clouds"$white;[[ $(ps aux | egrep "[v]pnc beatle-hnkg"|wc -l) -gt 0 ]] && sudo vpnc beatle-hnkg01.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/tkyo_list); eval "${action}"
+  #sudo pkill vpnc
+  echo -e $cyan"Connecting to Phase 1 APJK Cloud"$white; [[ $(ps aux | egrep "[v]pnc beatle-syd"|wc -l) -gt 0 ]] && sudo vpnc beatle-syd1.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/syd_tyo_list); eval "${action}"
+  #sudo pkill vpnc
   special=1
-  echo -e $cyan"Connection to Phase 1 AMER Clouds"$white; sudo vpnc beatle-rwc1.conf > /dev/null; list=$(cat Phase_1); eval "${action}"
-  sudo pkill vpnc
+  echo -e $cyan"Connection to Phase 1 AMER Clouds"$white; [[ $(ps aux | egrep "[v]pnc beatle-rwc"|wc -l) -gt 0 ]] && sudo vpnc beatle-rwc1.conf > /dev/null; list=$(cat /usr/local/bin/ip_lists/Phase1_list); eval "${action}"
+  #sudo pkill vpnc
 }
-cloudselect ()
-{
+
+cloudselect() {
 echo "Select the site:"
 select site in DFW RWC LIS SEC SYD TYO ALLN RDCY SNDG STLS LOND AMST HNKG TKYO;do break; done
 
@@ -81,7 +85,8 @@ case $site in
 	*) echo Invalid selection; exit 1
 esac
 }
-IPs () {
+
+IPs() {
 case $1 in
 	DFW) ip=172.16.; one=22.11; cnum=3; cloudletNODESiP1 ;;
 	RWC) ip=172.17.; one=22.11; cnum=3; cloudletNODESiP1 ;;
@@ -104,18 +109,16 @@ case $1 in
 	*) echo Invalid selection; exit 1
 esac
 }
-cloudletNODESiP1 ()
-{
+
+cloudletNODESiP1() {
 a=30.11; b=30.75; c=30.139; d=30.203
 }
 
-cloudletNODESiP21 ()
-{
+cloudletNODESiP21() {
 a=16.11; b=16.75; c=16.139; d=16.203; e=17.11; f=17.75; g=17.139; h=17.203; i=18.11; j=18.75; k=18.139; l=18.203; m=19.11; n=19.75; o=19.139; p=19.203; q=20.11; r=20.75; s=20.139; t=20.203
 }
 
-cloudletNODESiP22 ()
-{
+cloudletNODESiP22() {
 a=48.11; b=48.75; c=48.139; d=48.203; e=49.11; f=49.75; g=49.139; h=49.203; i=50.11; j=50.75; k=50.139; l=50.203; m=51.11; n=51.75; o=51.139; p=51.203; q=52.11; r=52.75; s=52.139; t=52.203
 }
 
@@ -124,19 +127,20 @@ case "$special" in
   0)  hosts_done=0
       for host in $(echo $list); do
         sshpass -p 'C0untingstars' scp $file root@$host:/var/service
-        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no root@$host mauiscp /var/service/$file /var/service/
+        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no root@$host mauiscp /usr/local/bin/$file /usr/local/bin/
         hosts_done=$(($hosts_done+1)); echo -ne "Hosts finished: "${green}${hosts_done}${white}    "Total hosts: $orange"$(echo $list |wc -w)'\r'$white
       done
       echo -ne '\n';;
   1)  hosts_done=0; sshpass -p 'C0untingstars' scp $file root@172.19.22.11:/var/service
       for host in $(echo $list); do
-        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no -t -t -R 8080:127.0.0.1:80 root@172.17.22.11 scp /var/service/$file root@$host:/var/service 2>/dev/null
-        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no -t -t -R 8080:127.0.0.1:80 root@172.17.22.11 ssh $host mauiscp /var/service/$file /var/service/ 2>/dev/null
+        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no -t -t -R 8080:127.0.0.1:80 root@172.17.22.11 scp /usr/local/bin/$file root@$host:/var/service 2>/dev/null
+        sshpass -p 'C0untingstars' ssh -o StrictHostKeyChecking=no -t -t -R 8080:127.0.0.1:80 root@172.17.22.11 ssh $host mauiscp /usr/local/bin/$file /usr/local/bin/ 2>/dev/null
         hosts_done=$(($hosts_done+1)); echo -ne "Hosts finished: "${green}${hosts_done}${white}    "Total hosts: $orange"$(echo $list |wc -w)'\r'$white
       done
       echo -ne '\n';;
 esac
 }
+
 run_cmd() {
 case "$special" in
   0)  hosts_done=0
@@ -157,6 +161,7 @@ case "$special" in
       echo -ne '\n';;
 esac
 }
+
 while getopts "f:x:ahvs" options; do
   case $options in
     f)  file=$OPTARG
